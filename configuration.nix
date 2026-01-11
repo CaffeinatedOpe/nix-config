@@ -13,6 +13,11 @@
   hardware = {
     graphics.enable32Bit = true;
     graphics.enable = true;
+    graphics.extraPackages = with pkgs; [
+        vpl-gpu-rt
+    ];
+    steam-hardware.enable = true;
+    rtl-sdr.enable = true;
   };
 
   boot.kernelPackages = pkgs.linuxPackages-rt_latest;
@@ -27,9 +32,11 @@
   boot.initrd.luks.devices."luks-777a016a-05fd-4599-ba62-0cae943b7f0e".device =
     "/dev/disk/by-uuid/777a016a-05fd-4599-ba62-0cae943b7f0e";
   networking.hostName = "nixtop"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-
-  # Enable networking
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
   networking.networkmanager.enable = true;
 
   # Set your time zone.
@@ -60,7 +67,7 @@
   users.users.lucy = {
     isNormalUser = true;
     description = "Lucy Fiedler";
-    extraGroups = [ "networkmanager" "wheel" "dialout" "docker" ];
+    extraGroups = [ "networkmanager" "wheel" "dialout" "docker" "plugdev" ];
     packages = with pkgs; [ ];
     shell = pkgs.zsh;
   };
@@ -79,13 +86,16 @@
     VST_PATH = makePluginPath "vst";
     VST3_PATH = makePluginPath "vst3";
   };
-  
+
   environment.sessionVariables = rec {
     LWR_NO_HARDWARE_CURSORS = 1;
     NIXOS_OZONE_WL = "1";
   };
 
   programs = rec {
+    steam.enable=true;
+    tmux.enable = true;
+    tmux.clock24 = true;
     ssh.startAgent = true;
     hyprland.enable = true;
     hyprland.xwayland.enable = true;
@@ -121,26 +131,73 @@
       pulse.enable = true;
       jack.enable = true;
       wireplumber.enable = true;
-      extraConfig.pipewire = {
-        "10-clock-rate" = {
-          "context.properties" = {
-            "default.clock.allowed-rates" = [ 48000 96000 192000 ];
-            "default.clock.rate" = 96000;
+      extraConfig = rec {
+        pipewire = {
+          "10-clock-rate" = {
+            "context.properties" = {
+              "default.clock.allowed-rates" = [ 96000 192000 ];
+              "default.clock.rate" = 96000;
+              "default.clock.quantum" = 256;
+              "default.clock.min-quantum" = 256;
+              "default.clock.max-quantum" = 256;
+            };
+          };
+        };
+        pipewire-pulse."92-low-latency" = {
+          context.modules = [{
+            name = "libpipewire-module-protocol-pulse";
+            args = {
+              pulse.min.req = "512/48000";
+              pulse.default.req = "512/48000";
+              pulse.max.req = "512/48000";
+              pulse.min.quantum = "512/48000";
+              pulse.max.quantum = "512/48000";
+            };
+          }];
+          stream.properties = {
+            node.latency = "512/48000";
+            resample.quality = 1;
           };
         };
       };
+      wireplumber.configPackages = [
+        (pkgs.writeTextDir
+          "share/wireplumber/main.lua.d/99-alsa-lowlatency.lua" ''
+            alsa_monitor.rules = {
+              {
+                matches = {{{ "node.name", "matches", "alsa_output.output.usb-BEHRINGER_UMC404HD_192k-0" }}};
+                apply_properties = {
+                  ["audio.format"] = "S32LE",
+                  ["audio.rate"] = "192000", -- for USB soundcards it should be twice your desired rate
+                  ["api.alsa.period-size"] = 4, -- defaults to 1024, tweak by trial-and-error
+                  -- ["api.alsa.disable-batch"] = true, -- generally, USB soundcards use the batch mode
+                },
+              },
+            }
+          '')
+      ];
     };
     logind.settings.Login.HandlePowerKey = "ignore";
     blueman.enable = true;
     udisks2.enable = true;
     rpcbind.enable = true;
-    usbmuxd.enable = true;
     udev.packages = [ pkgs.platformio-core pkgs.openocd ];
+    tailscale.enable = true;
+    tailscale.useRoutingFeatures = "client";
+    usbmuxd.enable = true;
+    printing = {
+        enable = true;
+        drivers = with pkgs; [
+            cups-filters
+            cups-browsed
+        ];
+    };
   };
 
   virtualisation.docker.enable = true;
 
   security = {
+    rtkit.enable = true;
     wrappers = {
       mount.source = "${pkgs.util-linux}/bin/mount";
       umount.source = "${pkgs.util-linux}/bin/umount";
@@ -149,21 +206,21 @@
 
   fileSystems = {
     "/mnt/nfs/shtuff" = {
-      device = "192.168.5.162:/export/shtuff";
+      device = "192.168.5.162:/shtuff";
       fsType = "nfs";
       options =
         [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" "user" ];
     };
 
     "/mnt/nfs/iphone-photos" = {
-      device = "192.168.5.162:/export/iphone-photos";
+      device = "192.168.5.162:/iphone-photos";
       fsType = "nfs";
       options =
         [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" "user" ];
     };
 
     "/mnt/nfs/media" = {
-      device = "192.168.5.162:/export/media";
+      device = "192.168.5.162:/media";
       fsType = "nfs";
       options =
         [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" "user" ];

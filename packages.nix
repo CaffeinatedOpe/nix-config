@@ -2,12 +2,21 @@
 {
   nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
+    usbutils
+    sdrpp
+    satdump
+    openvpn3
+    i2p
+    i2pd-tools
+    rclone
     kakoune
     soundconverter
     pnpm
+    qjackctl
     ffmpeg
     wget
     firefox
+    age
     kitty
     hyprland
     nwg-displays
@@ -17,8 +26,12 @@
     vscode
     pavucontrol
     fastfetch
+    sops
+    tmux
+    hyfetch
     reaper
     git
+    calibre
     curl
     hyprpaper
     waybar
@@ -26,13 +39,17 @@
     nfs-utils
     gnome-keyring
     catppuccin-cursors.mochaMauve
+    python313Packages.meshtastic
     nwg-look
     qmk
+    nmap
     freecad
     steam
+    kubectl
     docker
     udiskie
     slurp
+    tailscale
     grim
     wl-clipboard
     esptool
@@ -58,6 +75,10 @@
     wayland-utils
     kdePackages.sddm-kcm
     kdePackages.partitionmanager
+    kdePackages.dolphin
+    kdePackages.kio
+    kdePackages.kio-fuse
+    kdePackages.kio-extras
     nixfmt-classic
     krita
     gimp
