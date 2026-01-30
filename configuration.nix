@@ -20,6 +20,10 @@
     rtl-sdr.enable = true;
   };
 
+  networking.firewall = {
+  enable = false;
+};
+
   boot.kernelPackages = pkgs.linuxPackages-rt_latest;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

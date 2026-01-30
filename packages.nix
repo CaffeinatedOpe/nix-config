@@ -39,6 +39,7 @@
     nfs-utils
     gnome-keyring
     catppuccin-cursors.mochaMauve
+    marktext
     python313Packages.meshtastic
     nwg-look
     qmk
@@ -68,7 +69,7 @@
     htop
     prismlauncher
     yt-dlp
-    nodejs_24
+    nodejs
     python3
     busybox
     hardinfo2
